@@ -1,84 +1,105 @@
 import datetime
 import hashlib
+import os
 import socket
+import time
 
 
-class Block:
-    block_num = 1
-    next = None
-    hash = None
-    nonce = 0
-    previous_hash = 0xf6837146c8e17306ffc692e36eaeeb581ef04d0d549af66a65fca7257ffab86b4bf0b181dd12b66547c170e1f0771327e8a25903b48d90f61831455e45142409
-    timestamp = datetime.datetime.now()
-    node_number_formatted = format(0000, "04b")
-    node_ip = socket.gethostbyname(socket.gethostname())
+node_number_formatted = format(0000, "04b")
+node_ip = socket.gethostbyname(socket.gethostname())
 
-    def __init__(self, data):
-        self.data = data
-
-    def hash(self):
-        h = hashlib.sha512()
-        h.update(
-            str(self.nonce).encode('utf-8') + str(self.data).encode('utf-8') +
-            str(self.previous_hash).encode('utf-8') +
-            str(self.node_number_formatted).encode('utf-8') +
-            str(self.node_ip).encode('utf-8') +
-            str(self.timestamp).encode('utf-8') +
-            str(self.block_num).encode('utf-8'))
-        return h.hexdigest()
-
-    def __repr__(self):
-        return (f"Block Hash: {str(self.hash())}\n"
-                f"Block #: {self.block_num}\n"
-                f"Block Data: {self.data}\n"
-                f"Hashes: {self.nonce}\n")
+def mine(previous, transactions, timestamp, block_num):
+        difficulty = 16
+        max_nonce = 2**difficulty
+        target = 2**(512 - difficulty)
+        nonce = 0
+        for _ in range(max_nonce):
+                if int(create_block(get_hash_itself(previous), nonce, transactions, timestamp, block_num, 1)[-1], 16) <= target:
+                        return create_block(get_hash_itself(previous), nonce, transactions, timestamp, block_num)
+                else: nonce += 1
+        return create_block(get_hash_itself(previous),0, transactions, timestamp, block_num)
 
 
-class Blockchain:
-    data = "Data from 1"
-    difficulty = 32
-    max_nonce = 2**32
-    target = 2**(512 - difficulty)
-    block = Block(data)
-    dummy = head = block
+def get_parent_hash(block):
+        return block[0]
 
-    def add(self, block):
-        block.previous_hash = self.block.hash
-        block.block_num = self.block.block_num + 1
-        self.block.next = block
-        self.block = self.block.next
+def get_nonce(block):
+        return block[1]
+        
+def get_transactions(block):
+        return block[2]
 
-    def mine(self, block):
-        for _ in range(self.max_nonce):
-            if int(block.hash(), 16) <= self.target:
-                self.add(block)
-                break
-            else:
-                block.nonce += 1
+def get_node_number(block):
+        return block[3]
 
-    def show(self):
-        if not self.head: self.head = self.block
-        while self.head:
-            print(self.head)
-            self.write_block()
-            self.head = self.head.next
-    def write_block(self):
-        with open("blockchain.raw", 'a') as rawstore:
-            rawstore.write(f"{self.head}\n")
+def get_timestamp(block):
+        return block[4]
 
-def mine(blockchain, data):
-    blockchain.mine(data)
-    blockchain.show()
+def get_block_num(block):
+        return block[5]
+
+def get_hash_itself(block):
+        return block[6]
+
+
+def print_block(block, timestamp, block_num):
+        return (f"Previous Hash: {get_parent_hash(block)}\n"
+                f"Transactions: {get_transactions(block)}\n"
+                f"Mined From Node: {node_number_formatted}\n"
+                f"Node IP: {node_ip}\n"
+                f"Mined: {timestamp}\n"
+                f"Block #: {block_num}\n"
+                f"Block Hash: {get_hash_itself(block)}\n"
+                f"Hashes: {get_nonce(block)}\n"
+                )
+
+def create_block(parent_hash, nonce, transactions, timestamp, block_num, only_hash=False):
+        hash_itself = hashlib.sha512()
+        hash_itself.update(
+                str(parent_hash).encode('utf-8') +
+                str(nonce).encode('utf-8') +
+                str(transactions).encode('utf-8') +
+                str(node_number_formatted).encode('utf-8') +
+                str(node_ip).encode('utf-8') +
+                str(timestamp).encode('utf-8') +
+                str(block_num).encode('utf-8')
+        )
+        if only_hash: return hash_itself.hexdigest()
+        return (parent_hash, nonce, transactions, node_number_formatted, timestamp, block_num, hash_itself.hexdigest())
+
+def create_genesis_block(transactions):
+        return create_block(0, 0, transactions, time.time(), 0)
+
+def write_block(current_block):
+        with open("blockchain.raw", "a") as rawstore:
+                rawstore.write()
 
 def read_block():
-    pass
+        with open("blockchain.raw", "r") as raw: lines = raw.readlines()
+        self_hash = lines[-3].split(' ')[-1].replace('\n', '')
+        block_num = int(lines[-4].split(' ')[-1].replace('\n', ''))
+        return (self_hash, block_num)
 
 def main():
-    blockchain = Blockchain()
-    # mining
-    for n in range(5):
-        mine(blockchain, Block(f"Data from {n+1}"))
-
+        if not os.path.exists("blockchain.raw"):
+                # create genesis
+                current = create_genesis_block("X paid $100 to Y")
+                block_num = 0
+                current_block = print_block(current, get_timestamp(current), block_num)
+                with open("blockchain.raw", mode='a') as raw: raw.write(f"{current_block}\n")
+        else:
+                self_hash, block_num = read_block()
+                current = (None, None, None, None, None, block_num, self_hash)
+        while 1:
+        # for i in range(8):
+                timestamp = time.time()
+                previous = current
+                block_num += 1
+                current = mine(previous, None, timestamp, block_num)
+                current_block = print_block(current, timestamp, block_num)
+                nonce = get_nonce(current)
+                transactions = get_transactions(current)
+                with open("blockchain.raw", mode='a') as raw: raw.write(f"{current_block}\n")
 
 if __name__ == "__main__":
-    main()
+        main()
