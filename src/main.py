@@ -90,7 +90,6 @@ def main():
                 self_hash, block_num = read_block()
                 current = (None, None, None, None, None, block_num, self_hash)
         while 1:
-        # for i in range(8):
                 timestamp = time.time()
                 previous = current
                 block_num += 1
