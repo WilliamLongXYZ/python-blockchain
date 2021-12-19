@@ -80,9 +80,9 @@ def read_block():
         return (self_hash, block_num)
 
 def main():
+        # if there is no blockchain file, create it, and make a genesis block
         if not os.path.exists("blockchain.raw"):
-                # create genesis
-                current = create_genesis_block("X paid $100 to Y")
+                current = create_genesis_block(None)
                 block_num = 0
                 current_block = print_block(current, get_timestamp(current), block_num)
                 with open("blockchain.raw", mode='a') as raw: raw.write(f"{current_block}\n")
