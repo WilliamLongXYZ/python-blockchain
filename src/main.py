@@ -19,7 +19,6 @@ def mine(previous, transactions, timestamp, block_num):
                 else: nonce += 1
         return create_block(get_hash_itself(previous),0, transactions, timestamp, block_num)
 
-
 def get_parent_hash(block):
         return block[0]
 
